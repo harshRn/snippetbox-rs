@@ -1,17 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang='en'>
 
 <head>
     <meta charset='utf-8'>
-    <title>{% block title %}{{ title }} - Snippetbox{% endblock %}</title>
+    <title>{% block title %}{% endblock %} - Snippetbox</title>
 </head>
 
 <body>
     <header>
         <h1><a href='/'>Snippetbox</a></h1>
     </header>
+    {% include "partials/nav.html" %}
     <main>
-        {% block main %}{{ main }}{% endblock %}
+        {% block main %}{% endblock %}
     </main>
     <footer>Powered by <a href='https://rust-lang.org/'>Rust</a></footer>
 </body>

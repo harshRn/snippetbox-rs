@@ -1,7 +1,7 @@
 use askama::Template; // bring trait in scope
 
 #[derive(Template)] // this will generate the code...
-#[template(path = "home.html")] // using the template in this path, relative
+#[template(path = "pages/home.html")] // using the template in this path, relative
 // to the `templates` dir in the crate root
 // struct HelloTemplate<'a> {
 pub struct HomeTemplate {
