@@ -1,10 +1,9 @@
-{{define "base"}}
-<!doctype html>
-<html lang='en'>
+<!DOCTYPE html>
+<html lang="en">
 
 <head>
     <meta charset='utf-8'>
-    <title>{{template "title" .}} - Snippetbox</title>
+    <title>{% block title %}{{ title }} - Snippetbox{% endblock %}</title>
 </head>
 
 <body>
@@ -12,10 +11,9 @@
         <h1><a href='/'>Snippetbox</a></h1>
     </header>
     <main>
-        {{template "main" .}}
+        {% block main %}{{ main }}{% endblock %}
     </main>
-    <footer>Powered by <a href='https://golang.org/'>Go</a></footer>
+    <footer>Powered by <a href='https://rust-lang.org/'>Rust</a></footer>
 </body>
 
 </html>
-{{end}}

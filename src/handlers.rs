@@ -15,12 +15,15 @@ pub async fn home() -> impl IntoResponse {
     let body = HomeTemplate {};
     match body.render() {
         Ok(b) => (StatusCode::OK, headers, b),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            headers,
-            format!("could not render template home.html : {}", e),
-        ),
-    };
+        Err(e) => {
+            error!("could not render template home.html : {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                headers,
+                format!("could not render template home.html : {}", e),
+            )
+        }
+    }
 }
 
 pub async fn snippet_view(Path(snippet_id): Path<u32>) -> String {
