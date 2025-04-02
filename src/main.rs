@@ -1,12 +1,13 @@
 mod handlers;
+mod helpers;
 mod templates;
-use crate::handlers::{home, snippet_create, snippet_create_post, snippet_view};
 use axum::{
     Router,
     http::Request,
     routing::{get, get_service, post},
 };
 use clap::Parser;
+use helpers::AppRouter;
 use tower::ServiceExt;
 use tower_http::{services::ServeDir, trace::TraceLayer};
 // for trailing slash routes
@@ -36,14 +37,7 @@ async fn main() {
         .init();
     let args = Args::parse();
     // our router
-    let app = Router::new()
-        .route("/", get(home))
-        .route_with_tsr("/snippet/view/{id}", get(snippet_view))
-        .route_with_tsr("/snippet/create", get(snippet_create))
-        .route("/snippet/create", post(snippet_create_post))
-        .nest_service("/static", ServeDir::new("static"))
-        .layer(TraceLayer::new_for_http());
-
+    let app = AppRouter::new();
     let listener_res = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", args.port)).await;
     let listener = match listener_res {
         Ok(l) => l,
@@ -53,7 +47,7 @@ async fn main() {
         }
     };
     tracing::info!("server starting on :{}", args.port);
-    axum::serve(listener, app)
+    axum::serve(listener, app.get_router())
         .await
         .unwrap_or_else(|e| tracing::error!("was not able to start server : {}", e));
 }

@@ -1,6 +1,6 @@
 use crate::templates::HomeTemplate;
 
-use askama::Template;
+use askama::{Error, Template};
 use axum::{
     extract::Path,
     http::{HeaderMap, StatusCode, header},
@@ -16,12 +16,12 @@ pub async fn home() -> impl IntoResponse {
         Ok(b) => (StatusCode::OK, headers, b),
         Err(e) => {
             tracing::error!("could not render template home.html : {}", e);
-            server_error()
+            server_error(e)
         }
     }
 }
 
-fn server_error() -> (StatusCode, HeaderMap, String) {
+fn server_error(e: Error) -> (StatusCode, HeaderMap, String) {
     let mut headers = HeaderMap::new();
     headers.insert(header::SERVER, "Rust".parse().unwrap());
     headers.insert(header::CONTENT_TYPE, "html".parse().unwrap());
