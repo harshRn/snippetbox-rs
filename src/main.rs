@@ -4,8 +4,8 @@ mod models;
 mod templates;
 use std::sync::Arc;
 
-use axum::http::{HeaderMap, StatusCode, header};
-use axum::response::{IntoResponse, Response};
+use axum::http::{HeaderMap, Response, StatusCode, header};
+use axum::response::IntoResponse;
 use clap::Parser;
 use helpers::AppRouter;
 use models::snippet::SnippetModel;
@@ -27,7 +27,7 @@ struct AppState {
 }
 
 impl AppState {
-    pub fn server_error(e: Box<dyn std::error::Error>) -> (StatusCode, HeaderMap, String) {
+    pub fn server_error(e: Box<dyn std::error::Error>) -> impl IntoResponse {
         let mut headers = HeaderMap::new();
         headers.insert(header::SERVER, "Rust".parse().unwrap());
         headers.insert(header::CONTENT_TYPE, "text".parse().unwrap());
@@ -113,13 +113,6 @@ async fn main() {
 // SERVER SIDE CONNECTION TO THE DATABASE MUST BE CLOSED BEFORE THE MAIN FUNCTION EXIT
 // IN THE EVENT OF A CRASH HOW DO YOU ENSURE THAT THIS HAPPENS
 //  fn gracefully_close_server_side_open_connection() {}
-
-// #[derive(sqlx::FromRow)]
-// struct Snippet {
-//     id: i32,
-//     title: String,
-//     expires: sqlx::types::chrono::DateTime<Utc>,
-// }
 
 async fn open_db(dsn: MySqlConnectOptions) -> Pool<MySql> {
     let pool = match MySqlPool::connect_with(dsn).await {
