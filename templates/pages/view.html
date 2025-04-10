@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Snippet #{{ id }}{% endblock %}
+
+{% block main %}
+<div class='snippet'>
+    <div class='metadata'>
+        <strong>{{ title }}</strong>
+        <span>#{{ id }}</span>
+    </div>
+    <pre><code>{{ content }}</code></pre>
+    <div class='metadata'>
+        <time>Created: {{ created }}</time>
+        <time>Expires: {{ expires }}</time>
+    </div>
+</div>
+{% endblock %}

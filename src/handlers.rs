@@ -1,12 +1,16 @@
 use std::sync::Arc;
 
-use crate::{AppState, models::snippet, templates::HomeTemplate};
+use crate::{
+    AppState,
+    models::snippet,
+    templates::{HomeTemplate, TemplateData, ViewTemplate},
+};
 
 use askama::{Error, Template};
 use axum::{
     extract::{Path, State},
     http::{HeaderMap, StatusCode, header},
-    response::{IntoResponse, Redirect, Response},
+    response::{Html, IntoResponse, Redirect, Response},
 };
 
 pub async fn home(State(state): State<Arc<AppState>>) -> Response {
@@ -16,23 +20,29 @@ pub async fn home(State(state): State<Arc<AppState>>) -> Response {
 
     let snippets = state.snippets.latest().await;
     if !snippets.is_err() {
-        return (StatusCode::OK, format!("{:#?}", snippets.unwrap())).into_response();
+        let view_snippets = snippets
+            .unwrap()
+            .into_iter()
+            .map(ViewTemplate::from)
+            .collect::<Vec<ViewTemplate>>();
+        let home_template = HomeTemplate { view_snippets };
+        match home_template.render() {
+            Ok(html) => (StatusCode::OK, Html(html)).into_response(),
+            Err(err) => {
+                AppState::server_error(Box::new(err));
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Template rendering error",
+                )
+                    .into_response()
+            }
+        }
     } else {
         let error = snippets.err().unwrap();
         let message = error.to_string();
         AppState::server_error(Box::new(error));
         (StatusCode::INTERNAL_SERVER_ERROR, format!("{:?}", message)).into_response()
     }
-
-    // let body = HomeTemplate {};
-    // match body.render() {
-    //     Ok(b) => (StatusCode::OK, headers, b),
-    //     Err(e) => {
-    //         tracing::error!("could not render template home.html : {}", e);
-    //         // server_error(e)
-    //         (StatusCode::OK, headers, "e".to_string())
-    //     }
-    // }
 }
 
 pub async fn snippet_view(
@@ -41,7 +51,26 @@ pub async fn snippet_view(
 ) -> Response {
     let result = state.snippets.get(&snippet_id).await;
     if !result.is_err() {
-        return (StatusCode::OK, format!("{:#?}", result.unwrap())).into_response();
+        let snippet = result.unwrap();
+        let template = ViewTemplate::new(
+            snippet.title,
+            snippet.id,
+            snippet.content,
+            snippet.created,
+            snippet.expires,
+        );
+
+        match template.render() {
+            Ok(html) => (StatusCode::OK, Html(html)).into_response(),
+            Err(err) => {
+                AppState::server_error(Box::new(err));
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Template rendering error",
+                )
+                    .into_response()
+            }
+        }
     } else {
         let error = result.err().unwrap();
         if let sqlx::error::Error::RowNotFound = error {

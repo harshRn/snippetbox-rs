@@ -2,5 +2,22 @@
 {% block title %}Home{% endblock %}
 {% block main %}
 <h2>Latest Snippets</h2>
-<p>There's nothing to see here yet!</p>
+{% if view_snippets.len() != 0 %}
+<table>
+    <tr>
+        <th>Title</th>
+        <th>Created</th>
+        <th>Id</th>
+    </tr>
+    {% for snippet in view_snippets %}
+    <tr>
+        <td><a href='/snippet/view/{{ snippet.id }}'>{{snippet.title}}</a></td>
+        <td>{{snippet.created}}</td>
+        <td>#{{snippet.id}}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p>There's nothing to see here... yet!</p>
+{% endif %}
 {% endblock %}
