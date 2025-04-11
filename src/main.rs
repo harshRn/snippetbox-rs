@@ -4,8 +4,9 @@ mod models;
 mod templates;
 use std::sync::Arc;
 
-use axum::http::{HeaderMap, Response, StatusCode, header};
-use axum::response::IntoResponse;
+use askama::Error;
+use axum::http::{HeaderMap, StatusCode, header};
+use axum::response::{Html, IntoResponse, Response};
 use clap::Parser;
 use helpers::AppRouter;
 use models::snippet::SnippetModel;
@@ -27,7 +28,7 @@ struct AppState {
 }
 
 impl AppState {
-    pub fn server_error(e: Box<dyn std::error::Error>) -> impl IntoResponse {
+    pub fn server_error(e: Box<dyn std::error::Error>) -> Response {
         let mut headers = HeaderMap::new();
         headers.insert(header::SERVER, "Rust".parse().unwrap());
         headers.insert(header::CONTENT_TYPE, "text".parse().unwrap());
@@ -36,6 +37,21 @@ impl AppState {
             headers,
             format!("Internal server error : {}", e),
         )
+            .into_response()
+    }
+
+    pub fn render(render_result: Result<String, Error>) -> Response {
+        match render_result {
+            Ok(html) => (StatusCode::OK, Html(html)).into_response(),
+            Err(err) => {
+                AppState::server_error(Box::new(err));
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Template rendering error",
+                )
+                    .into_response()
+            }
+        }
     }
 }
 

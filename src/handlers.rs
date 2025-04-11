@@ -26,22 +26,11 @@ pub async fn home(State(state): State<Arc<AppState>>) -> Response {
             .map(ViewTemplate::from)
             .collect::<Vec<ViewTemplate>>();
         let home_template = HomeTemplate { view_snippets };
-        match home_template.render() {
-            Ok(html) => (StatusCode::OK, Html(html)).into_response(),
-            Err(err) => {
-                AppState::server_error(Box::new(err));
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Template rendering error",
-                )
-                    .into_response()
-            }
-        }
+        let template_render_result = home_template.render();
+        AppState::render(template_render_result)
     } else {
         let error = snippets.err().unwrap();
-        let message = error.to_string();
-        AppState::server_error(Box::new(error));
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("{:?}", message)).into_response()
+        AppState::server_error(Box::new(error))
     }
 }
 
@@ -60,25 +49,14 @@ pub async fn snippet_view(
             snippet.expires,
         );
 
-        match template.render() {
-            Ok(html) => (StatusCode::OK, Html(html)).into_response(),
-            Err(err) => {
-                AppState::server_error(Box::new(err));
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Template rendering error",
-                )
-                    .into_response()
-            }
-        }
+        let template_render_result = template.render();
+        AppState::render(template_render_result)
     } else {
         let error = result.err().unwrap();
         if let sqlx::error::Error::RowNotFound = error {
             return (StatusCode::NOT_FOUND, "snippet could not be found!").into_response();
         }
-        let message = error.to_string();
-        AppState::server_error(Box::new(error));
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("{:#?}", message)).into_response()
+        AppState::server_error(Box::new(error))
     }
 }
 
