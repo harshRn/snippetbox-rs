@@ -385,7 +385,9 @@ checksum = "1a7964611d71df112cb1730f2ee67324fcf4d0fc6606acbbe9bfe06df124637c"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
+ "js-sys",
  "num-traits",
+ "wasm-bindgen",
  "windows-link",
 ]
 
@@ -1818,9 +1820,12 @@ dependencies = [
  "askama",
  "axum",
  "axum-extra",
+ "bytes",
+ "chrono",
  "clap",
  "env_logger",
  "futures",
+ "http-body-util",
  "log",
  "normalize-path",
  "sqlx",

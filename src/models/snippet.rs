@@ -1,6 +1,5 @@
 use sqlx::{
     MySql, Pool,
-    error::Error::*,
     types::chrono::{DateTime, Utc},
 };
 

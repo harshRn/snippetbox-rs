@@ -2,22 +2,17 @@ use std::sync::Arc;
 
 use crate::{
     AppState,
-    models::snippet,
-    templates::{HomeTemplate, TemplateData, ViewTemplate},
+    templates::{CreateTemplate, HomeTemplate, ViewTemplate},
 };
 
-use askama::{Error, Template};
+use askama::Template;
 use axum::{
     extract::{Path, State},
     http::{HeaderMap, StatusCode, header},
-    response::{Html, IntoResponse, Redirect, Response},
+    response::{IntoResponse, Redirect, Response},
 };
 
 pub async fn home(State(state): State<Arc<AppState>>) -> Response {
-    let mut headers = HeaderMap::new();
-    headers.insert(header::SERVER, "Rust".parse().unwrap());
-    headers.insert(header::CONTENT_TYPE, "html".parse().unwrap());
-
     let snippets = state.snippets.latest().await;
     if !snippets.is_err() {
         let view_snippets = snippets
@@ -60,9 +55,11 @@ pub async fn snippet_view(
     }
 }
 
-pub async fn snippet_create(State(state): State<Arc<AppState>>) -> &'static str {
+pub async fn snippet_create() -> Response {
     // Redirect the user to the relevant page for the snippet.
-    "Display a form creating a new snippet"
+    let create = CreateTemplate {};
+    let template_render_result = create.render();
+    AppState::render(template_render_result)
 }
 
 // pub async fn snippet_create_post() -> impl IntoResponse {  // OR

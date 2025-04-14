@@ -3,15 +3,15 @@ mod helpers;
 mod models;
 mod templates;
 use std::sync::Arc;
+mod middleware;
 
 use askama::Error;
-use axum::http::{HeaderMap, StatusCode, header};
+use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Response};
 use clap::Parser;
 use helpers::AppRouter;
 use models::snippet::SnippetModel;
 use sqlx::mysql::{MySqlConnectOptions, MySqlPool};
-use sqlx::types::chrono::Utc;
 use sqlx::{ConnectOptions, MySql, Pool};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -29,12 +29,8 @@ struct AppState {
 
 impl AppState {
     pub fn server_error(e: Box<dyn std::error::Error>) -> Response {
-        let mut headers = HeaderMap::new();
-        headers.insert(header::SERVER, "Rust".parse().unwrap());
-        headers.insert(header::CONTENT_TYPE, "text".parse().unwrap());
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            headers,
             format!("Internal server error : {}", e),
         )
             .into_response()
@@ -60,8 +56,17 @@ async fn main() {
     // init_logger();
     tracing_subscriber::registry()
         .with(
+            // tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+            //     format!("{}=debug,tower_http=debug", env!("CARGO_CRATE_NAME")).into()
+            // }),
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                format!("{}=debug,tower_http=debug", env!("CARGO_CRATE_NAME")).into()
+                // axum logs rejections from built-in extractors with the `axum::rejection`
+                // target, at `TRACE` level. `axum::rejection=trace` enables showing those events
+                format!(
+                    "{}=debug,tower_http=debug,axum::rejection=trace",
+                    env!("CARGO_CRATE_NAME")
+                )
+                .into()
             }),
         )
         .with(tracing_subscriber::fmt::layer())

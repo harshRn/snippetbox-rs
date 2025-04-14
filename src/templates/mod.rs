@@ -1,11 +1,8 @@
 use askama::Template;
+use chrono::Datelike; // not used directly anywhere but it is used in codegen of askama for the current year
 use sqlx::types::chrono::{DateTime, Utc};
 
 use crate::models::snippet::Snippet; // bring trait in scope
-
-pub struct TemplateData {
-    snippet: ViewTemplate,
-}
 
 #[derive(Template)]
 #[template(path = "pages/home.html")] // using the template in this path, relative
@@ -56,3 +53,8 @@ impl ViewTemplate {
         }
     }
 }
+
+#[derive(Template)]
+#[template(path = "pages/create.html")]
+// struct HelloTemplate<'a> {
+pub struct CreateTemplate;
