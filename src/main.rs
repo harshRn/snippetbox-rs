@@ -4,6 +4,7 @@ mod models;
 mod templates;
 use std::sync::Arc;
 mod middleware;
+mod utils;
 
 use askama::Error;
 use axum::http::StatusCode;
@@ -53,13 +54,9 @@ impl AppState {
 
 #[tokio::main]
 async fn main() {
-    // init_logger();
     tracing_subscriber::registry()
         .with(
-            // tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-            //     format!("{}=debug,tower_http=debug", env!("CARGO_CRATE_NAME")).into()
-            // }),
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_a| {
                 // axum logs rejections from built-in extractors with the `axum::rejection`
                 // target, at `TRACE` level. `axum::rejection=trace` enables showing those events
                 format!(
@@ -81,7 +78,6 @@ async fn main() {
             panic!("");
         });
     opts = opts.log_statements(log::LevelFilter::Trace);
-    // opts = opts.port(3307);
     let pool = open_db(opts).await;
 
     // app state

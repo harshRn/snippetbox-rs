@@ -53,8 +53,3 @@ impl ViewTemplate {
         }
     }
 }
-
-#[derive(Template)]
-#[template(path = "pages/create.html")]
-// struct HelloTemplate<'a> {
-pub struct CreateTemplate;

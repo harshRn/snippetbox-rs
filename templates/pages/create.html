@@ -5,17 +5,35 @@
 <form action='/snippet/create' method='POST'>
     <div>
         <label>Title:</label>
-        <input type='text' name='title'>
+        {#
+        Remove errors into a partial.
+        #}
+        {% let title_error = get("title") %}
+        {% let len = title_error.len() %}
+        {% if len != 0 -%}
+        <label class='error'>{{ title_error }}</label>
+        {% endif %}
+        <input type='text' name='title' , value='{{ title }}'>
     </div>
     <div>
         <label>Content:</label>
-        <textarea name='content'></textarea>
+        {% let content_error = get("content") %}
+        {% let len = content_error.len() %}
+        {% if len != 0 -%}
+        <label class='error'>{{ content_error }}</label>
+        {% endif %}
+        <textarea name='content'>{{ content }}</textarea>
     </div>
     <div>
         <label>Delete in:</label>
-        <input type='radio' name='expires' value='365' checked> One Year
-        <input type='radio' name='expires' value='7'> One Week
-        <input type='radio' name='expires' value='1'> One Day
+        {% let expires_error = get("expires") %}
+        {% let len = expires_error.len() %}
+        {% if len != 0 -%}
+        <label class='error'>{{ expires_error }}</label>
+        {% endif %}
+        <input type='radio' name='expires' value='365' {% if expires==365 -%} checked {% endif %}> One Year
+        <input type='radio' name='expires' value='7' {% if expires==7 -%} checked {% endif %}> One Week
+        <input type='radio' name='expires' value='1' {% if expires==1 -%} checked {% endif %}> One Day
     </div>
     <div>
         <input type='submit' value='Publish snippet'>

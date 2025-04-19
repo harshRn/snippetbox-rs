@@ -23,8 +23,8 @@ impl SnippetModel {
 
     pub async fn insert(
         &self,
-        title: &str,
-        content: &str,
+        title: String,
+        content: String,
         expires: i32,
     ) -> Result<u64, sqlx::Error> {
         let query = r#"INSERT INTO snippets (title, content, created, expires) 

@@ -1,8 +1,9 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     AppState,
-    templates::{CreateTemplate, HomeTemplate, ViewTemplate},
+    templates::{HomeTemplate, ViewTemplate},
+    utils::form_validation::{CreateTemplate, SnippetData},
 };
 
 use askama::Template;
@@ -57,26 +58,40 @@ pub async fn snippet_view(
 
 pub async fn snippet_create() -> Response {
     // Redirect the user to the relevant page for the snippet.
-    let create = CreateTemplate {};
+    let create = CreateTemplate {
+        user_errors: HashMap::new(),
+        title: "".to_string(),
+        content: "".to_string(),
+        expires: 365,
+    };
     let template_render_result = create.render();
     AppState::render(template_render_result)
 }
 
 // pub async fn snippet_create_post() -> impl IntoResponse {  // OR
-pub async fn snippet_create_post(State(state): State<Arc<AppState>>) -> Response {
-    let title = "Rust";
-    let content = "Rust Rust Rust Rust Rust Rust Rust";
-    let expires = 7;
-
-    let result = state.snippets.insert(title, content, expires).await;
+pub async fn snippet_create_post(
+    State(state): State<Arc<AppState>>,
+    // Form(snippet_data): Form<SnippetData>,
+    snippet_data: SnippetData,
+) -> Response {
+    let (title, content, expires) = snippet_data.get_data();
+    // default form data size = 10 MB, can be restricted like so
+    // let single_byte = content
+    //     .bytes()
+    //     .collect::<Vec<u8>>()
+    //     .first() // or drain
+    //     .unwrap()
+    //     .as
+    //     .to_string();
+    let result = state.snippets.insert(title, content, expires.into()).await;
     let mut redirection_uri = "/".to_string();
+    let mut headers = HeaderMap::new();
+    headers.insert(header::LOCATION, redirection_uri.parse().unwrap());
     if let Err(e) = result {
         AppState::server_error(Box::new(e));
     } else {
         redirection_uri = format!("/snippet/view/{}", result.unwrap());
     }
-    let mut headers = HeaderMap::new();
-    headers.insert(header::LOCATION, redirection_uri.parse().unwrap());
 
     Redirect::to(&redirection_uri).into_response()
 }
