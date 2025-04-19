@@ -47,16 +47,6 @@ pub struct SnippetData {
     pub expires: u16,
 }
 
-impl Default for SnippetData {
-    fn default() -> Self {
-        Self {
-            title: "".to_string(),
-            content: "".to_string(),
-            expires: 365,
-        }
-    }
-}
-
 fn validate_expires(expires: u16) -> Result<(), ValidationError> {
     if expires != 1 && expires != 7 && expires != 365 {
         return Err(ValidationError::new("expiration duration value")
@@ -73,7 +63,6 @@ impl SnippetData {
 
 impl<S> FromRequest<S> for SnippetData
 where
-    // T: DeserializeOwned + Validate + std::fmt::Debug,
     S: Send + Sync,
     Form<SnippetData>: FromRequest<S, Rejection = FormRejection>,
 {
@@ -109,7 +98,7 @@ pub enum ServerError {
     AxumFormRejection(#[from] FormRejection),
 }
 pub struct RejectionWithUserInput {
-    // ServerError::ValidationError should always be paired with a non-None value for the 'value' field of this struct
+    // FIX - ServerError::ValidationError should always be paired with a non-None value for the 'value' field of this struct
     error: ServerError,
     value: Option<SnippetData>,
 }

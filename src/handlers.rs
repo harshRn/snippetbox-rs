@@ -71,7 +71,6 @@ pub async fn snippet_create() -> Response {
 // pub async fn snippet_create_post() -> impl IntoResponse {  // OR
 pub async fn snippet_create_post(
     State(state): State<Arc<AppState>>,
-    // Form(snippet_data): Form<SnippetData>,
     snippet_data: SnippetData,
 ) -> Response {
     let (title, content, expires) = snippet_data.get_data();
