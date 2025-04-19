@@ -1,17 +1,17 @@
 mod handlers;
-mod helpers;
 mod models;
 mod templates;
 use std::sync::Arc;
 mod middleware;
+mod routes;
 mod utils;
 
 use askama::Error;
 use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Response};
 use clap::Parser;
-use helpers::AppRouter;
 use models::snippet::SnippetModel;
+use routes::AppRouter;
 use sqlx::mysql::{MySqlConnectOptions, MySqlPool};
 use sqlx::{ConnectOptions, MySql, Pool};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -19,7 +19,6 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// port
     #[arg(short, long)]
     port: u16,
 }
