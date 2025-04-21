@@ -1,5 +1,5 @@
 use crate::middleware::common_headers;
-use serde::{Deserialize, Serialize};
+// use serde::{Deserialize, Serialize}; // for session testing
 use std::sync::Arc;
 use time::Duration;
 
@@ -11,14 +11,13 @@ use axum::{
     Router,
     extract::MatchedPath,
     http::{Request, header::HOST},
-    response::IntoResponse,
     routing::{get, post},
 };
 // for trailing slash routes
 //https://github.com/tokio-rs/axum/issues/1118
 use axum_extra::routing::RouterExt;
 use tower_http::{catch_panic::CatchPanicLayer, services::ServeDir, trace::TraceLayer};
-use tower_sessions::{Expiry, Session, SessionManagerLayer};
+use tower_sessions::{Expiry, SessionManagerLayer}; // import Session here
 use tower_sessions_sqlx_store::MySqlStore;
 use tracing::info_span;
 

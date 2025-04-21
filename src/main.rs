@@ -39,20 +39,6 @@ impl AppState {
             .into_response()
     }
 
-    pub fn render2(render_result: Result<String, Error>, base_html: String) -> Response {
-        match render_result {
-            Ok(html) => (StatusCode::OK, Html(base_html + &html)).into_response(),
-            Err(err) => {
-                AppState::server_error(Box::new(err));
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Template rendering error",
-                )
-                    .into_response()
-            }
-        }
-    }
-
     pub fn render(render_result: Result<String, Error>) -> Response {
         match render_result {
             Ok(html) => (StatusCode::OK, Html(html)).into_response(),

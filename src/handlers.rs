@@ -8,7 +8,7 @@ use crate::{
 
 use askama::Template;
 use axum::{
-    extract::{Path, Request, State},
+    extract::{Path, State},
     http::{HeaderMap, StatusCode, header},
     response::{IntoResponse, Redirect, Response},
 };
