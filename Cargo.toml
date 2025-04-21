@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.97"
 askama = "0.13.0"
-axum = "0.8.3"
+axum = { version = "0.8.3", features = ["macros"] }
 axum-extra = "0.10.1"
 bytes = "1.10.1"
 chrono = "0.4.40"
@@ -20,9 +20,12 @@ normalize-path = "0.2.1"
 serde = "1.0.219"
 sqlx = { version = "0.8.3", features = ["runtime-tokio", "mysql", "chrono"] }
 thiserror = "2.0.12"
+time = "0.3.41"
 tokio = { version = "1.44.1", features = ["full", "tracing"] }
 tower = "0.5.2"
 tower-http = { version = "0.6.2", features = ["full"] }
+tower-sessions = "0.14.0"
+tower-sessions-sqlx-store = { version = "0.15.0", features = ["mysql"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 validator = { version = "0.20.0", features = ["derive"] }

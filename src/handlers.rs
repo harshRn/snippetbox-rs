@@ -8,10 +8,11 @@ use crate::{
 
 use askama::Template;
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Request, State},
     http::{HeaderMap, StatusCode, header},
     response::{IntoResponse, Redirect, Response},
 };
+use tower_sessions::Session;
 
 pub async fn home(State(state): State<Arc<AppState>>) -> Response {
     let snippets = state.snippets.latest().await;
@@ -31,13 +32,14 @@ pub async fn home(State(state): State<Arc<AppState>>) -> Response {
 }
 
 pub async fn snippet_view(
+    session: Session,
     Path(snippet_id): Path<u32>,
     State(state): State<Arc<AppState>>,
 ) -> Response {
     let result = state.snippets.get(&snippet_id).await;
     if !result.is_err() {
         let snippet = result.unwrap();
-        let template = ViewTemplate::new(
+        let mut template = ViewTemplate::new(
             snippet.title,
             snippet.id,
             snippet.content,
@@ -45,6 +47,12 @@ pub async fn snippet_view(
             snippet.expires,
         );
 
+        let flash_present: Option<String> = session.remove("flash").await.unwrap();
+        if let Some(flash) = flash_present {
+            if flash.len() > 0 {
+                template.set_flash(flash);
+            }
+        }
         let template_render_result = template.render();
         AppState::render(template_render_result)
     } else {
@@ -69,8 +77,10 @@ pub async fn snippet_create() -> Response {
 }
 
 // pub async fn snippet_create_post() -> impl IntoResponse {  // OR
+// #[axum::debug_handler]
 pub async fn snippet_create_post(
     State(state): State<Arc<AppState>>,
+    session: Session,
     snippet_data: SnippetData,
 ) -> Response {
     let (title, content, expires) = snippet_data.get_data();
@@ -91,6 +101,9 @@ pub async fn snippet_create_post(
     } else {
         redirection_uri = format!("/snippet/view/{}", result.unwrap());
     }
-
+    session
+        .insert("flash", "Snippet successfully created!")
+        .await
+        .unwrap();
     Redirect::to(&redirection_uri).into_response()
 }

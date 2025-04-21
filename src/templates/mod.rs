@@ -22,6 +22,7 @@ pub struct ViewTemplate {
     content: String,
     created: DateTime<Utc>,
     expires: DateTime<Utc>,
+    flash: String,
 }
 
 impl From<Snippet> for ViewTemplate {
@@ -50,6 +51,11 @@ impl ViewTemplate {
             content,
             created,
             expires,
+            flash: "".to_string(),
         }
+    }
+
+    pub fn set_flash(&mut self, flash: String) {
+        self.flash = flash;
     }
 }

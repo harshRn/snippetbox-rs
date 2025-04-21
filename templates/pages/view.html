@@ -1,8 +1,10 @@
 {% extends "base.html" %}
-
 {% block title %}Snippet #{{ id }}{% endblock %}
 
 {% block main %}
+{% if flash.len() != 0 -%}
+<div class='flash'>{{ flash }}</div>
+{% endif %}
 <div class='snippet'>
     <div class='metadata'>
         <strong>{{ title }}</strong>

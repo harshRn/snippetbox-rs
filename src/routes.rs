@@ -1,5 +1,7 @@
 use crate::middleware::common_headers;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use time::Duration;
 
 use crate::{
     AppState,
@@ -9,26 +11,48 @@ use axum::{
     Router,
     extract::MatchedPath,
     http::{Request, header::HOST},
+    response::IntoResponse,
     routing::{get, post},
 };
 // for trailing slash routes
 //https://github.com/tokio-rs/axum/issues/1118
 use axum_extra::routing::RouterExt;
 use tower_http::{catch_panic::CatchPanicLayer, services::ServeDir, trace::TraceLayer};
+use tower_sessions::{Expiry, Session, SessionManagerLayer};
+use tower_sessions_sqlx_store::MySqlStore;
 use tracing::info_span;
+
+// meant for session testing
+// const COUNTER_KEY: &str = "counter";
+
+// #[derive(Serialize, Deserialize, Default, Debug)]
+// struct Counter(usize);
+
+// async fn handler_session_example(session: Session) -> impl IntoResponse {
+//     let counter: Counter = session.get(COUNTER_KEY).await.unwrap().unwrap_or_default();
+//     session.insert(COUNTER_KEY, counter.0 + 1).await.unwrap();
+//     println!("Current count: {}", counter.0);
+//     format!("Current count: {}", counter.0)
+// }
 
 pub struct AppRouter {
     router: Router,
 }
 
 impl AppRouter {
-    pub fn new(shared_state: Arc<AppState>) -> Self {
+    pub fn new(shared_state: Arc<AppState>, session_store: MySqlStore) -> Self {
+        let session_layer = SessionManagerLayer::new(session_store)
+            .with_secure(false)
+            .with_expiry(Expiry::OnInactivity(Duration::hours(12)));
+
         let router = Router::new()
+            // .route("/ses", get(handler_session_example)) // session testing
             .route("/", get(home))
             .route_with_tsr("/snippet/view/{id}", get(snippet_view))
             .route_with_tsr("/snippet/create", get(snippet_create))
             .route("/snippet/create", post(snippet_create_post))
             .nest_service("/static", ServeDir::new("static"))
+            .layer(session_layer)
             .layer(axum::middleware::from_fn(common_headers))
             .layer(CatchPanicLayer::new())
             .layer(
