@@ -1,6 +1,7 @@
 mod handlers;
 mod models;
 mod templates;
+use std::net::SocketAddr;
 use std::sync::Arc;
 mod middleware;
 mod routes;
@@ -113,10 +114,14 @@ async fn main() {
         }
     };
     tracing::info!("server starting on :{}", args.port);
-    axum::serve(listener, app.get_router())
-        .with_graceful_shutdown(shutdown_signal(deletion_task.abort_handle()))
-        .await
-        .unwrap_or_else(|e| tracing::error!("was not able to start server : {}", e));
+    axum::serve(
+        listener,
+        app.get_router()
+            .into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal(deletion_task.abort_handle()))
+    .await
+    .unwrap_or_else(|e| tracing::error!("was not able to start server : {}", e));
 
     deletion_task.await.unwrap().unwrap();
     // gracefully_close_server_side_open_connection();

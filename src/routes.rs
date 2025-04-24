@@ -1,4 +1,4 @@
-use crate::middleware::common_headers;
+use crate::middleware::{common_headers, request_ip};
 // use serde::{Deserialize, Serialize}; // for session testing
 use std::sync::Arc;
 use time::Duration;
@@ -62,17 +62,19 @@ impl AppRouter {
                         .extensions()
                         .get::<MatchedPath>()
                         .map(MatchedPath::as_str);
-                    let host = request.headers().get(HOST).unwrap().to_str().unwrap();
+                    let request_ip = request.headers().get("user-ip").unwrap().to_str().unwrap();
                     let scheme = format!("{:#?}", request.version());
                     info_span!(
                         "http_request",
                         method = ?request.method(),
                         matched_path,
-                        host,
+                        request_ip,
                         scheme
                     )
                 }),
             )
+            // layering happens in the opposite order of declaration so this needs to be after the logging layer
+            .layer(axum::middleware::from_fn(request_ip))
             .with_state(shared_state);
 
         AppRouter { router }

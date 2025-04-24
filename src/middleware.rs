@@ -1,4 +1,11 @@
-use axum::{extract::Request, middleware::Next, response::Response};
+use std::net::SocketAddr;
+
+use axum::{
+    extract::{ConnectInfo, Request},
+    http::response,
+    middleware::Next,
+    response::Response,
+};
 
 pub async fn common_headers(request: Request, next: Next) -> Response {
     // any code here will be executed before the processing of the request
@@ -25,4 +32,19 @@ pub async fn common_headers(request: Request, next: Next) -> Response {
     headers.insert("X-XSS-Protection", "0".parse().unwrap());
     headers.insert("Server", "Go".parse().unwrap());
     response
+}
+
+pub async fn request_ip(
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    mut request: Request,
+    next: Next,
+) -> Response {
+    let headers = request.headers_mut();
+    headers.append(
+        "user-ip",
+        addr.to_string()
+            .parse()
+            .unwrap_or_else(|_| "unknown".parse().unwrap()),
+    );
+    next.run(request).await
 }
