@@ -8,6 +8,7 @@ anyhow = "1.0.97"
 askama = "0.13.0"
 axum = { version = "0.8.3", features = ["macros"] }
 axum-extra = "0.10.1"
+axum-server = { version = "0.7.2", features = ["tls-rustls"] }
 bytes = "1.10.1"
 chrono = "0.4.40"
 clap = { version = "4.5.35", features = ["derive"] }

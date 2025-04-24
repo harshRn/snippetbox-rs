@@ -2,7 +2,6 @@ use std::net::SocketAddr;
 
 use axum::{
     extract::{ConnectInfo, Request},
-    http::response,
     middleware::Next,
     response::Response,
 };
@@ -30,7 +29,7 @@ pub async fn common_headers(request: Request, next: Next) -> Response {
     headers.insert("X-Content-Type-Options", "nosniff".parse().unwrap());
     headers.insert("X-Frame-Options", "deny".parse().unwrap());
     headers.insert("X-XSS-Protection", "0".parse().unwrap());
-    headers.insert("Server", "Go".parse().unwrap());
+    headers.insert("Server", "Rust".parse().unwrap());
     response
 }
 

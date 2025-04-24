@@ -1,8 +1,4 @@
 use crate::middleware::{common_headers, request_ip};
-// use serde::{Deserialize, Serialize}; // for session testing
-use std::sync::Arc;
-use time::Duration;
-
 use crate::{
     AppState,
     handlers::{home, snippet_create, snippet_create_post, snippet_view},
@@ -10,9 +6,11 @@ use crate::{
 use axum::{
     Router,
     extract::MatchedPath,
-    http::{Request, header::HOST},
+    http::Request,
     routing::{get, post},
 };
+use std::sync::Arc;
+use time::Duration;
 // for trailing slash routes
 //https://github.com/tokio-rs/axum/issues/1118
 use axum_extra::routing::RouterExt;
@@ -20,19 +18,6 @@ use tower_http::{catch_panic::CatchPanicLayer, services::ServeDir, trace::TraceL
 use tower_sessions::{Expiry, SessionManagerLayer}; // import Session here
 use tower_sessions_sqlx_store::MySqlStore;
 use tracing::info_span;
-
-// meant for session testing
-// const COUNTER_KEY: &str = "counter";
-
-// #[derive(Serialize, Deserialize, Default, Debug)]
-// struct Counter(usize);
-
-// async fn handler_session_example(session: Session) -> impl IntoResponse {
-//     let counter: Counter = session.get(COUNTER_KEY).await.unwrap().unwrap_or_default();
-//     session.insert(COUNTER_KEY, counter.0 + 1).await.unwrap();
-//     println!("Current count: {}", counter.0);
-//     format!("Current count: {}", counter.0)
-// }
 
 pub struct AppRouter {
     router: Router,
@@ -45,7 +30,6 @@ impl AppRouter {
             .with_expiry(Expiry::OnInactivity(Duration::hours(12)));
 
         let router = Router::new()
-            // .route("/ses", get(handler_session_example)) // session testing
             .route("/", get(home))
             .route_with_tsr("/snippet/view/{id}", get(snippet_view))
             .route_with_tsr("/snippet/create", get(snippet_create))
