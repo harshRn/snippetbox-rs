@@ -1,3 +1,6 @@
+use crate::handlers::{
+    hn, user_login, user_login_post, user_logout_post, user_signup, user_signup_post,
+};
 use crate::middleware::{common_headers, request_ip};
 use crate::{
     AppState,
@@ -11,6 +14,7 @@ use axum::{
 };
 use std::sync::Arc;
 use time::Duration;
+use tower_http::timeout::TimeoutLayer;
 // for trailing slash routes
 //https://github.com/tokio-rs/axum/issues/1118
 use axum_extra::routing::RouterExt;
@@ -29,15 +33,30 @@ impl AppRouter {
             .with_secure(false)
             .with_expiry(Expiry::OnInactivity(Duration::hours(12)));
 
+        // timeouts
+        // https://github.com/tokio-rs/axum/blob/8762520da82cd99b78b35869069b36cfa305d4b9/axum-extra/src/middleware.rs#L15
+        // https://github.com/tokio-rs/axum/blob/8762520da82cd99b78b35869069b36cfa305d4b9/examples/graceful-shutdown/src/main.rs#L13
+        // https://github.com/tokio-rs/axum/blob/8762520da82cd99b78b35869069b36cfa305d4b9/axum/src/docs/middleware.md?plain=1#L58
+        // let option_timeout = Some(std::time::Duration::new(10, 0));
+        // let timeout_layer = option_timeout.map(TimeoutLayer::new);
+        let timeout = std::time::Duration::new(10, 0);
+        let tl = TimeoutLayer::new(timeout);
         let router = Router::new()
+            .route("/a", get(hn))
             .route("/", get(home))
             .route_with_tsr("/snippet/view/{id}", get(snippet_view))
             .route_with_tsr("/snippet/create", get(snippet_create))
             .route("/snippet/create", post(snippet_create_post))
+            .route("/user/signup", get(user_signup))
+            .route("/user/signup", post(user_signup_post))
+            .route("/user/login", get(user_login))
+            .route("/user/login", post(user_login_post))
+            .route("/user/logout", get(user_logout_post))
             .nest_service("/static", ServeDir::new("static"))
             .layer(session_layer)
             .layer(axum::middleware::from_fn(common_headers))
             .layer(CatchPanicLayer::new())
+            .layer(tl)
             .layer(
                 TraceLayer::new_for_http().make_span_with(|request: &Request<_>| {
                     // Log the matched route's path (with placeholders not filled in).

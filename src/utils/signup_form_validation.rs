@@ -1,29 +1,32 @@
-use askama::Template;
 use axum::{
     Form,
     extract::{FromRequest, Request, rejection::FormRejection},
     response::{IntoResponse, Response},
 };
-use chrono::Datelike; // not used directly anywhere but it is used in codegen of askama for the current year
-use serde::Deserialize;
-use std::{borrow::Cow, collections::HashMap};
 use validator::ValidationErrorsKind::Field;
-use validator::{Validate, ValidationError};
+
+use chrono::Datelike;
+use regex::Regex;
+use std::{borrow::Cow, collections::HashMap};
+use validator::{Validate, ValidationError}; // not used directly anywhere but it is used in codegen of askama for the current year
+
+use askama::Template;
+use serde::Deserialize;
 
 use crate::AppState;
 
 use super::validation_errors::ServerError;
 
 #[derive(Template, Deserialize, Debug)]
-#[template(path = "pages/create.html")]
-pub struct CreateTemplate {
+#[template(path = "pages/signup.html")]
+pub struct SignupTemplate {
     pub user_errors: HashMap<String, String>,
-    pub title: String,
-    pub content: String,
-    pub expires: u16,
+    pub name: String,
+    pub email: String,
+    pub password: String,
 }
 
-impl CreateTemplate {
+impl SignupTemplate {
     fn get(&self, key: &str) -> &str {
         if let Some(msg) = self.user_errors.get(key) {
             msg
@@ -34,37 +37,35 @@ impl CreateTemplate {
 }
 
 #[derive(Deserialize, Debug, Validate, Clone)]
-pub struct SnippetData {
-    #[validate(length(
-        min = 1,
-        max = 100,
-        message = "This field cannot be empty and cannot have more than 100 characters including whitespaces"
-    ))]
-    pub title: String,
-    #[validate(length(min = 1, message = "This field cannot be empty"))]
-    pub content: String,
+pub struct SignupData {
+    #[validate(length(min = 1, message = "This field cannot be blank"))]
+    pub name: String,
+    #[validate(length(min = 8, message = "This field must be at least 8 characters long"))]
+    pub password: String,
     // validate , value in 1,7,365
-    #[validate(custom(function = "validate_expires"))]
-    pub expires: u16,
+    #[validate(custom(function = "validate_email"))]
+    pub email: String,
 }
 
-fn validate_expires(expires: u16) -> Result<(), ValidationError> {
-    if expires != 1 && expires != 7 && expires != 365 {
-        return Err(ValidationError::new("expiration duration value")
-            .with_message(Cow::Borrowed("This field must equal 1, 7 or 365")));
+fn validate_email(email: &String) -> Result<(), ValidationError> {
+    let re = Regex::new("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$").unwrap();
+    let caps = re.captures(email);
+    if let None = caps {
+        return Err(ValidationError::new("email value")
+            .with_message(Cow::Borrowed("This field must contain a valid email")));
     }
     Ok(())
 }
 
-impl<S> FromRequest<S> for SnippetData
+impl<S> FromRequest<S> for SignupData
 where
     S: Send + Sync,
-    Form<SnippetData>: FromRequest<S, Rejection = FormRejection>,
+    Form<SignupData>: FromRequest<S, Rejection = FormRejection>,
 {
     type Rejection = RejectionWithUserInput;
 
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
-        let form_result = Form::<SnippetData>::from_request(req, state).await;
+        let form_result = Form::<SignupData>::from_request(req, state).await;
         match form_result {
             Ok(Form(value)) => {
                 if let Err(e) = value.validate() {
@@ -87,7 +88,7 @@ where
 pub struct RejectionWithUserInput {
     // FIX - ServerError::ValidationError should always be paired with a non-None value for the 'value' field of this struct
     error: ServerError,
-    value: Option<SnippetData>,
+    value: Option<SignupData>,
 }
 
 impl IntoResponse for RejectionWithUserInput {
@@ -95,15 +96,13 @@ impl IntoResponse for RejectionWithUserInput {
         match self.error {
             ServerError::ValidationError(e) => {
                 let value = self.value.unwrap();
-                let mut create_template = CreateTemplate {
+                let mut signup_template = SignupTemplate {
                     user_errors: HashMap::new(),
-                    title: value.title,
-                    content: value.content,
-                    expires: value.expires,
+                    name: value.name,
+                    password: "".to_string(),
+                    email: value.email,
                 };
-                // this can be deserialized with serde... figure it out
-                // this is going to be the worst part of this code base until and unless I learn serde
-                // learn serde and implement a Deserializer for format! -ed error.
+                // this can be deserialized with serde.
                 let field_errors = e.errors();
                 for error in field_errors.keys() {
                     let mut error_string = "".to_string();
@@ -112,14 +111,13 @@ impl IntoResponse for RejectionWithUserInput {
                             error_string += &err.message.as_ref().unwrap().to_string()
                         });
                     }
-                    create_template
+                    signup_template
                         .user_errors
                         .insert(error.to_string(), error_string);
                 }
 
-                AppState::render(create_template.render())
+                AppState::render(signup_template.render())
             }
-            // WHAT THE FUCK IS AXUMFORMREJECTION - VALIDATOR NEEDS SOME MORE RESEARCH
             ServerError::AxumFormRejection(e) => AppState::server_error(Box::new(e)),
         }
         .into_response()

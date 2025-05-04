@@ -59,3 +59,26 @@ impl ViewTemplate {
         self.flash = flash;
     }
 }
+
+#[derive(Template)] // this will generate the code...
+#[template(path = "pages/login.html")]
+// struct HelloTemplate<'a> {
+pub struct LoginTemplate {
+    email: String,
+    password: String,
+    flash: String,
+}
+
+impl LoginTemplate {
+    pub fn new(email: String, password: String) -> Self {
+        Self {
+            email,
+            password,
+            flash: "".to_string(),
+        }
+    }
+
+    pub fn set_flash(&mut self, msg: String) {
+        self.flash = msg;
+    }
+}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+
+{% block main %}
+{% if flash.len() != 0 -%}
+<div class='flash'>{{ flash }}</div>
+{% endif %}
+<form action='/user/login' method='POST' novalidate>
+    <!-- Notice that here we are looping over the NonFieldErrors and displaying
+    them, if any exist -->
+    <div>
+        <label>Email:</label>
+        <input type='email' name='email' value='{{ email }}'>
+    </div>
+    <div>
+        <label>Password:</label>
+        <input type='password' name='password'>
+    </div>
+    <div>
+        <input type='submit' value='Login'>
+    </div>
+</form>
+{%endblock%}

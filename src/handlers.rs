@@ -2,8 +2,11 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     AppState,
-    templates::{HomeTemplate, ViewTemplate},
-    utils::form_validation::{CreateTemplate, SnippetData},
+    templates::{HomeTemplate, LoginTemplate, ViewTemplate},
+    utils::{
+        form_validation::{CreateTemplate, SnippetData},
+        signup_form_validation::{SignupData, SignupTemplate},
+    },
 };
 
 use askama::Template;
@@ -12,7 +15,12 @@ use axum::{
     http::{HeaderMap, StatusCode, header},
     response::{IntoResponse, Redirect, Response},
 };
+use sqlx::{error::DatabaseError, mysql::MySqlDatabaseError};
 use tower_sessions::Session;
+
+pub async fn hn() -> Response {
+    (StatusCode::OK, "hello").into_response()
+}
 
 pub async fn home(State(state): State<Arc<AppState>>) -> Response {
     let snippets = state.snippets.latest().await;
@@ -83,7 +91,6 @@ pub async fn snippet_create_post(
     session: Session,
     snippet_data: SnippetData,
 ) -> Response {
-    let (title, content, expires) = snippet_data.get_data();
     // default form data size = 10 MB, can be restricted like so
     // let single_byte = content
     //     .bytes()
@@ -92,7 +99,14 @@ pub async fn snippet_create_post(
     //     .unwrap()
     //     .as
     //     .to_string();
-    let result = state.snippets.insert(title, content, expires.into()).await;
+    let result = state
+        .snippets
+        .insert(
+            snippet_data.title,
+            snippet_data.content,
+            snippet_data.expires.into(),
+        )
+        .await;
     let mut redirection_uri = "/".to_string();
     let mut headers = HeaderMap::new();
     headers.insert(header::LOCATION, redirection_uri.parse().unwrap());
@@ -106,4 +120,84 @@ pub async fn snippet_create_post(
         .await
         .unwrap();
     Redirect::to(&redirection_uri).into_response()
+}
+
+pub async fn user_signup() -> Response {
+    let user = SignupTemplate {
+        user_errors: HashMap::new(),
+        name: "".to_string(),
+        email: "".to_string(),
+        password: "".to_string(),
+    };
+
+    let template_render_result = user.render();
+    AppState::render(template_render_result)
+}
+
+// #[axum::debug_handler]
+pub async fn user_signup_post(
+    State(state): State<Arc<AppState>>,
+    session: Session,
+    signup_data: SignupData,
+) -> Response {
+    let result = state
+        .users
+        .insert(
+            signup_data.name.clone(),
+            signup_data.email.clone(),
+            signup_data.password.clone(),
+        )
+        .await;
+    let mut redirection_uri = "/user/signup".to_string();
+    let mut headers = HeaderMap::new();
+    headers.insert(header::LOCATION, redirection_uri.parse().unwrap());
+
+    //  centralised DB error handling required. This is too ugly
+    if let Err(e) = result {
+        let e: sqlx::error::Error = *(e.downcast().unwrap()); // problematic if bcrypt has an error. Fix.
+        if let sqlx::error::Error::Database(err) = e {
+            let x = *(err.downcast::<MySqlDatabaseError>());
+            if x.number() == 1062 {
+                let mut user = SignupTemplate {
+                    user_errors: HashMap::new(),
+                    name: signup_data.name,
+                    email: signup_data.email,
+                    password: "".to_string(),
+                };
+                user.user_errors.insert(
+                    "signup_error".to_string(),
+                    "This email is already in use".to_string(),
+                );
+                let template_render_result = user.render();
+                return AppState::render(template_render_result);
+            }
+        }
+    } else {
+        redirection_uri = format!("/user/login")
+    }
+    session
+        .insert("flash", "Your signup was successful. Please log in.")
+        .await
+        .unwrap();
+    Redirect::to(&redirection_uri).into_response()
+}
+
+pub async fn user_login(session: Session) -> Response {
+    let mut login_template = LoginTemplate::new("".to_string(), "".to_string());
+    let flash_present: Option<String> = session.remove("flash").await.unwrap();
+    if let Some(flash) = flash_present {
+        if flash.len() > 0 {
+            login_template.set_flash(flash);
+        }
+    }
+    let template_render_result = login_template.render();
+    AppState::render(template_render_result)
+}
+
+pub async fn user_login_post() -> Response {
+    (StatusCode::OK, "user_signup").into_response()
+}
+
+pub async fn user_logout_post() -> Response {
+    (StatusCode::OK, "user_signup").into_response()
 }

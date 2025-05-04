@@ -15,6 +15,7 @@ use axum::response::{Html, IntoResponse, Response};
 use axum_server::{Handle, tls_rustls::RustlsConfig};
 use clap::Parser;
 use models::snippet::SnippetModel;
+use models::users::UserModel;
 use routes::AppRouter;
 use sqlx::mysql::{MySqlConnectOptions, MySqlPool};
 use sqlx::{ConnectOptions, MySql, Pool};
@@ -39,6 +40,7 @@ struct Ports {
 
 struct AppState {
     snippets: models::snippet::SnippetModel,
+    users: models::users::UserModel,
 }
 
 impl AppState {
@@ -78,7 +80,7 @@ async fn main() {
                 // axum logs rejections from built-in extractors with the `axum::rejection`
                 // target, at `TRACE` level. `axum::rejection=trace` enables showing those events
                 format!(
-                    "{}=debug,tower_http=debug,axum::rejection=trace,sqlx=error,tower_sessions=error,tower-sessions-sqlx-store=error",
+                    "{}=debug,tower_http=debug,axum::rejection=info,sqlx=error,tower_sessions=error,tower-sessions-sqlx-store=error,axum-server=debug,rustls=debug",
                     env!("CARGO_CRATE_NAME")
                 )
                 .into()
@@ -136,6 +138,7 @@ async fn main() {
     // app state
     let shared_state = Arc::new(AppState {
         snippets: SnippetModel::new(pool.clone()),
+        users: UserModel::new(pool.clone()),
     });
 
     // init router with app state

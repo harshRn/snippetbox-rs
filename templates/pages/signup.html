@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Signup{% endblock %}
+
+{% block main %}
+<form action='/user/signup' method='POST' novalidate>
+    <div>
+        <label>Name:</label>
+        {% let name_error = get("name") %}
+        {% let len = name_error.len() %}
+        {% if len != 0 -%}
+        <label class='error'>{{ name_error }}</label>
+        {% endif %}
+        <input type='text' name='name' value='{{ name }}'>
+    </div>
+    <div>
+        <label>Email:</label>
+        {% let email_error = get("email") %}
+        {% let len = email_error.len() %}
+        {% if len != 0 -%}
+        <label class='error'>{{ email_error }}</label>
+        {% endif %}
+        {% let signup_error = get("signup_error") %}
+        {% let len = signup_error.len() %}
+        {% if len != 0 -%}
+        <label class='error'>{{ signup_error }}</label>
+        {% endif %}
+        <input type='email' name='email' value='{{ email }}'>
+    </div>
+    <div>
+        <label>Password:</label>
+        {% let password_error = get("password") %}
+        {% let len = password_error.len() %}
+        {% if len != 0 -%}
+        <label class='error'>{{ password_error }}</label>
+        {% endif %}
+        <input type='password' name='password'>
+    </div>
+    <div>
+        <input type='submit' value='Signup'>
+    </div>
+</form>
+{%endblock%}
