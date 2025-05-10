@@ -2,9 +2,10 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     AppState,
-    templates::{HomeTemplate, LoginTemplate, ViewTemplate},
+    templates::{HomeTemplate, ViewTemplate},
     utils::{
         form_validation::{CreateTemplate, SnippetData},
+        login_form_validation::{LoginData, LoginTemplate},
         signup_form_validation::{SignupData, SignupTemplate},
     },
 };
@@ -22,7 +23,7 @@ pub async fn hn() -> Response {
     (StatusCode::OK, "hello").into_response()
 }
 
-pub async fn home(State(state): State<Arc<AppState>>) -> Response {
+pub async fn home(State(state): State<Arc<AppState>>, session: Session) -> Response {
     let snippets = state.snippets.latest().await;
     if !snippets.is_err() {
         let view_snippets = snippets
@@ -30,7 +31,17 @@ pub async fn home(State(state): State<Arc<AppState>>) -> Response {
             .into_iter()
             .map(ViewTemplate::from)
             .collect::<Vec<ViewTemplate>>();
-        let home_template = HomeTemplate { view_snippets };
+        let flash_present: Option<String> = session.remove("flash").await.unwrap();
+        let mut f = "".to_string();
+        if let Some(flash) = flash_present {
+            if flash.len() > 0 {
+                f = flash;
+            }
+        }
+        let home_template = HomeTemplate {
+            view_snippets,
+            flash: f,
+        };
         let template_render_result = home_template.render();
         AppState::render(template_render_result)
     } else {
@@ -134,7 +145,6 @@ pub async fn user_signup() -> Response {
     AppState::render(template_render_result)
 }
 
-// #[axum::debug_handler]
 pub async fn user_signup_post(
     State(state): State<Arc<AppState>>,
     session: Session,
@@ -187,17 +197,81 @@ pub async fn user_login(session: Session) -> Response {
     let flash_present: Option<String> = session.remove("flash").await.unwrap();
     if let Some(flash) = flash_present {
         if flash.len() > 0 {
-            login_template.set_flash(flash);
+            login_template.flash = flash;
         }
     }
     let template_render_result = login_template.render();
     AppState::render(template_render_result)
 }
 
-pub async fn user_login_post() -> Response {
-    (StatusCode::OK, "user_signup").into_response()
+pub async fn user_login_post(
+    State(state): State<Arc<AppState>>,
+    session: Session,
+    login_data: LoginData,
+) -> Response {
+    let redirection_uri = "/snippet/create";
+    match state
+        .users
+        .authenticate(&login_data.email, &login_data.password)
+        .await
+    {
+        Ok(id) => {
+            tracing::info!("login successful : {}", id);
+            match session.cycle_id().await {
+                Ok(_) => {
+                    let ses_auth_ins = session.insert("authenticatedUserID", id).await;
+                    if let Err(e) = ses_auth_ins {
+                        tracing::error!(
+                            "could not insert the authenticated user id into the session : {}",
+                            e.to_string()
+                        );
+                    }
+                    Redirect::to(&redirection_uri).into_response()
+                }
+                Err(e) => {
+                    tracing::info!("session could not be renewed : {}", e);
+                    AppState::server_error(Box::new(e))
+                }
+            }
+        }
+        Err(e) => {
+            // centralised error handling that takes errors,
+            // downcasts them with proper handling and then returns the correct error type
+            let mut login_template = LoginTemplate::new(login_data.email, "".to_string());
+            login_template
+                .user_errors
+                .insert("login_error".to_string(), e.to_string());
+            let template_render_result = login_template.render();
+            AppState::render(template_render_result)
+            // StatusUnprocessableEntity when login fails
+        }
+    }
 }
 
-pub async fn user_logout_post() -> Response {
-    (StatusCode::OK, "user_signup").into_response()
+pub async fn user_logout_post(session: Session) -> Response {
+    match session.cycle_id().await {
+        Ok(_) => {
+            // why renew token first and then remove authenticatedUserID , why not do it before ?
+            let auth_rmv: Result<Option<i32>, tower_sessions::session::Error> =
+                session.remove("authenticatedUserID").await;
+            match auth_rmv {
+                Ok(_) => {
+                    // error handling here
+                    tracing::info!("session renewal successful");
+                    let _ = session
+                        .insert("flash", "You've been successfully logged out")
+                        .await;
+                    Redirect::to("/").into_response()
+                }
+                Err(e) => {
+                    tracing::error!("problems in removing auth details from session : {}", e);
+                    AppState::server_error(Box::new(e)).into_response()
+                }
+            }
+        }
+        Err(e) => {
+            tracing::error!("session could not be renewed : {}", e);
+            AppState::server_error(Box::new(e)).into_response()
+        }
+    }
 }

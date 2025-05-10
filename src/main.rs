@@ -20,6 +20,7 @@ use routes::AppRouter;
 use sqlx::mysql::{MySqlConnectOptions, MySqlPool};
 use sqlx::{ConnectOptions, MySql, Pool};
 use tokio::{signal, task::AbortHandle, time::sleep};
+use tower_sessions::Session;
 use tower_sessions::session_store::ExpiredDeletion;
 use tower_sessions_sqlx_store::MySqlStore;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -69,6 +70,17 @@ impl AppState {
                     .into_response()
             }
         }
+    }
+
+    pub async fn is_authenticated(session: Session) -> bool {
+        let auth_res: Result<Option<i32>, tower_sessions::session::Error> =
+            session.get("authenticatedUserID").await;
+        if let Ok(id_opt) = auth_res {
+            if let Some(_) = id_opt {
+                return true;
+            }
+        }
+        false
     }
 }
 

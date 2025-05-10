@@ -51,7 +51,7 @@ impl AppRouter {
             .route("/user/signup", post(user_signup_post))
             .route("/user/login", get(user_login))
             .route("/user/login", post(user_login_post))
-            .route("/user/logout", get(user_logout_post))
+            .route("/user/logout", post(user_logout_post))
             .nest_service("/static", ServeDir::new("static"))
             .layer(session_layer)
             .layer(axum::middleware::from_fn(common_headers))

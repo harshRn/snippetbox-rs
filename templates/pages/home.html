@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Home{% endblock %}
+
 {% block main %}
+{% if flash.len() != 0 -%}
+<div class='flash'>{{ flash }}</div>
+{% endif %}
 <h2>Latest Snippets</h2>
 {% if view_snippets.len() != 0 %}
 <table>

@@ -14,8 +14,10 @@
 //     err_no_record:
 // }
 
-// use std::error::Error;
-// use std::fmt::{Debug, Display};
+use std::{
+    error::Error,
+    fmt::{self, Debug},
+};
 
 // #[derive(Debug)]
 // struct ErrDuplicateEmail;
@@ -27,3 +29,37 @@
 // impl Error for ErrDuplicateEmail {}
 
 // enum DBErrors
+
+#[derive(Debug, Clone)]
+pub struct ErrInvalidCredentials;
+
+// Generation of an error is completely separate from how it is displayed.
+// There's no need to be concerned about cluttering complex logic with the display style.
+//
+// Note that we don't store any extra info about the errors. This means we can't state
+// which string failed to parse without modifying our types to carry that information.
+impl fmt::Display for ErrInvalidCredentials {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "invalid credentials")
+    }
+}
+
+unsafe impl Send for ErrInvalidCredentials {}
+
+impl Error for ErrInvalidCredentials {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        None
+    }
+
+    // fn description(&self) -> &str {
+    //     "description() is deprecated; use Display"
+    // }
+
+    fn cause(&self) -> Option<&dyn Error> {
+        self.source()
+    }
+
+    // fn provide<'a>(&'a self, request: &mut std::error::Request<'a>) {
+
+    // }
+}

@@ -3,15 +3,24 @@ use sqlx::{
     types::chrono::{DateTime, Utc},
 };
 
-use std::error::Error;
+use std::{error::Error, f64::consts::E};
 
 use bcrypt::hash;
+
+use crate::models::errors::ErrInvalidCredentials;
+
 struct User {
     id: i32,
     name: String,
     email: String,
     hashed_password: Vec<u8>,
     created: DateTime<Utc>,
+}
+
+#[derive(sqlx::FromRow, Debug)]
+struct UserRecord {
+    id: i32,
+    hashed_password: Vec<u8>,
 }
 
 pub struct UserModel {
@@ -58,11 +67,51 @@ impl UserModel {
         }
     }
 
-    pub fn authenticate(&self, email: &str, password: &str) -> Result<i32, sqlx::Error> {
-        Ok(1)
+    pub async fn authenticate(
+        &self,
+        email: &str,
+        password: &str,
+    ) -> Result<i32, Box<dyn Error + Send>> {
+        let query = "SELECT id, hashed_password FROM users WHERE email = ?";
+        match sqlx::query_as::<_, UserRecord>(query)
+            .bind(email)
+            .fetch_one(&self.pool)
+            .await
+        {
+            Ok(res) => {
+                match bcrypt::verify(
+                    password,
+                    String::from_utf8(res.hashed_password).unwrap().as_str(),
+                ) {
+                    Ok(x) => {
+                        if x {
+                            tracing::info!("login successful for {} ", email);
+                            return Ok(res.id);
+                        } else {
+                            tracing::info!(
+                                "login attempt failed due to invalid credentials for {}",
+                                email
+                            );
+                            Err(Box::new(ErrInvalidCredentials))
+                        }
+                    }
+                    Err(e) => {
+                        if let bcrypt::BcryptError::InvalidHash(inv_pwd_msg) = &e {
+                            tracing::info!(
+                                "could not hash password correctly for user : {}, error: {}",
+                                email,
+                                inv_pwd_msg.clone()
+                            );
+                        }
+                        return Err(Box::new(e));
+                    }
+                }
+            }
+            Err(e) => return Err(Box::new(e)),
+        }
     }
 
-    pub fn exists(&self, id: i32) -> Result<bool, sqlx::Error> {
+    pub async fn exists(&self, id: i32) -> Result<bool, sqlx::Error> {
         Ok(false)
     }
 }

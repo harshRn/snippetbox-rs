@@ -9,8 +9,9 @@ use crate::models::snippet::Snippet; // bring trait in scope
 // to the `templates` dir in the crate root
 pub struct HomeTemplate {
     pub view_snippets: Vec<ViewTemplate>, // the name of the struct can be anything
-                                          // name: &'a str, // the field name should match the variable name
-                                          // in your template
+    // name: &'a str, // the field name should match the variable name
+    // in your template
+    pub flash: String,
 }
 
 #[derive(Template)] // this will generate the code...
@@ -57,28 +58,5 @@ impl ViewTemplate {
 
     pub fn set_flash(&mut self, flash: String) {
         self.flash = flash;
-    }
-}
-
-#[derive(Template)] // this will generate the code...
-#[template(path = "pages/login.html")]
-// struct HelloTemplate<'a> {
-pub struct LoginTemplate {
-    email: String,
-    password: String,
-    flash: String,
-}
-
-impl LoginTemplate {
-    pub fn new(email: String, password: String) -> Self {
-        Self {
-            email,
-            password,
-            flash: "".to_string(),
-        }
-    }
-
-    pub fn set_flash(&mut self, msg: String) {
-        self.flash = msg;
     }
 }
