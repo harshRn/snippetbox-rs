@@ -1,10 +1,15 @@
 use std::net::SocketAddr;
 
+use askama::Template;
 use axum::{
     extract::{ConnectInfo, Request},
+    http::header::CACHE_CONTROL,
     middleware::Next,
-    response::Response,
+    response::{IntoResponse, Redirect, Response},
 };
+use tower_sessions::Session;
+
+use crate::{AppState, utils::login_form_validation::LoginTemplate};
 
 pub async fn common_headers(request: Request, next: Next) -> Response {
     // any code here will be executed before the processing of the request
@@ -45,5 +50,14 @@ pub async fn request_ip(
             .parse()
             .unwrap_or_else(|_| "unknown".parse().unwrap()),
     );
+    next.run(request).await
+}
+
+pub async fn require_auth(session: Session, mut request: Request, next: Next) -> Response {
+    if !AppState::is_authenticated(session).await {
+        return Redirect::to("/user/login").into_response();
+    }
+    let headers = request.headers_mut();
+    headers.append(CACHE_CONTROL, "no-store".parse().unwrap());
     next.run(request).await
 }

@@ -24,6 +24,7 @@ pub struct SignupTemplate {
     pub name: String,
     pub email: String,
     pub password: String,
+    pub is_authenticated: bool,
 }
 
 impl SignupTemplate {
@@ -101,6 +102,7 @@ impl IntoResponse for RejectionWithUserInput {
                     name: value.name,
                     password: "".to_string(),
                     email: value.email,
+                    is_authenticated: false,
                 };
                 // this can be deserialized with serde.
                 let field_errors = e.errors();

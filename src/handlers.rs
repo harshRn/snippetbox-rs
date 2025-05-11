@@ -38,9 +38,11 @@ pub async fn home(State(state): State<Arc<AppState>>, session: Session) -> Respo
                 f = flash;
             }
         }
+        let is_authenticated = AppState::is_authenticated(session).await;
         let home_template = HomeTemplate {
             view_snippets,
             flash: f,
+            is_authenticated,
         };
         let template_render_result = home_template.render();
         AppState::render(template_render_result)
@@ -90,6 +92,7 @@ pub async fn snippet_create() -> Response {
         title: "".to_string(),
         content: "".to_string(),
         expires: 365,
+        is_authenticated: true,
     };
     let template_render_result = create.render();
     AppState::render(template_render_result)
@@ -139,6 +142,7 @@ pub async fn user_signup() -> Response {
         name: "".to_string(),
         email: "".to_string(),
         password: "".to_string(),
+        is_authenticated: false,
     };
 
     let template_render_result = user.render();
@@ -173,6 +177,7 @@ pub async fn user_signup_post(
                     name: signup_data.name,
                     email: signup_data.email,
                     password: "".to_string(),
+                    is_authenticated: false,
                 };
                 user.user_errors.insert(
                     "signup_error".to_string(),

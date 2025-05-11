@@ -5,6 +5,12 @@ use sqlx::types::chrono::{DateTime, Utc};
 use crate::models::snippet::Snippet; // bring trait in scope
 
 #[derive(Template)]
+#[template(path = "partials/nav.html")]
+pub struct Nav {
+    pub is_authenticated: bool,
+}
+
+#[derive(Template)]
 #[template(path = "pages/home.html")] // using the template in this path, relative
 // to the `templates` dir in the crate root
 pub struct HomeTemplate {
@@ -12,6 +18,7 @@ pub struct HomeTemplate {
     // name: &'a str, // the field name should match the variable name
     // in your template
     pub flash: String,
+    pub is_authenticated: bool,
 }
 
 #[derive(Template)] // this will generate the code...
@@ -24,6 +31,7 @@ pub struct ViewTemplate {
     created: DateTime<Utc>,
     expires: DateTime<Utc>,
     flash: String,
+    pub is_authenticated: bool,
 }
 
 impl From<Snippet> for ViewTemplate {
@@ -53,6 +61,7 @@ impl ViewTemplate {
             created,
             expires,
             flash: "".to_string(),
+            is_authenticated: false,
         }
     }
 

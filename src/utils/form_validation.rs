@@ -21,6 +21,7 @@ pub struct CreateTemplate {
     pub title: String,
     pub content: String,
     pub expires: u16,
+    pub is_authenticated: bool,
 }
 
 impl CreateTemplate {
@@ -100,6 +101,8 @@ impl IntoResponse for RejectionWithUserInput {
                     title: value.title,
                     content: value.content,
                     expires: value.expires,
+                    // this is super shady
+                    is_authenticated: true,
                 };
                 // this can be deserialized with serde... figure it out
                 // this is going to be the worst part of this code base until and unless I learn serde

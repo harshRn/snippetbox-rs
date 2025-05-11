@@ -1,7 +1,7 @@
 use crate::handlers::{
     hn, user_login, user_login_post, user_logout_post, user_signup, user_signup_post,
 };
-use crate::middleware::{common_headers, request_ip};
+use crate::middleware::{common_headers, request_ip, require_auth};
 use crate::{
     AppState,
     handlers::{home, snippet_create, snippet_create_post, snippet_view},
@@ -15,6 +15,7 @@ use axum::{
 use std::sync::Arc;
 use time::Duration;
 use tower_http::timeout::TimeoutLayer;
+use tower_sessions::cookie::SameSite;
 // for trailing slash routes
 //https://github.com/tokio-rs/axum/issues/1118
 use axum_extra::routing::RouterExt;
@@ -30,7 +31,8 @@ pub struct AppRouter {
 impl AppRouter {
     pub fn new(shared_state: Arc<AppState>, session_store: MySqlStore) -> Self {
         let session_layer = SessionManagerLayer::new(session_store)
-            .with_secure(false)
+            .with_secure(false) // this should be true ???
+            .with_same_site(SameSite::Lax)
             .with_expiry(Expiry::OnInactivity(Duration::hours(12)));
 
         // timeouts
@@ -42,16 +44,17 @@ impl AppRouter {
         let timeout = std::time::Duration::new(10, 0);
         let tl = TimeoutLayer::new(timeout);
         let router = Router::new()
+            .route_with_tsr("/snippet/create", get(snippet_create))
+            .route("/snippet/create", post(snippet_create_post))
+            .route("/user/logout", post(user_logout_post))
+            .route_layer(axum::middleware::from_fn(require_auth)) // every route above this layer will have this middleware attached to it
             .route("/a", get(hn))
             .route("/", get(home))
             .route_with_tsr("/snippet/view/{id}", get(snippet_view))
-            .route_with_tsr("/snippet/create", get(snippet_create))
-            .route("/snippet/create", post(snippet_create_post))
             .route("/user/signup", get(user_signup))
             .route("/user/signup", post(user_signup_post))
             .route("/user/login", get(user_login))
             .route("/user/login", post(user_login_post))
-            .route("/user/logout", post(user_logout_post))
             .nest_service("/static", ServeDir::new("static"))
             .layer(session_layer)
             .layer(axum::middleware::from_fn(common_headers))

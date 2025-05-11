@@ -25,6 +25,7 @@ pub struct LoginTemplate {
     password: String,
     pub user_errors: HashMap<String, String>,
     pub flash: String,
+    pub is_authenticated: bool,
 }
 
 impl LoginTemplate {
@@ -34,6 +35,7 @@ impl LoginTemplate {
             password,
             user_errors: HashMap::new(),
             flash: "".to_string(),
+            is_authenticated: false,
         }
     }
 
