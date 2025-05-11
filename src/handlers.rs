@@ -25,11 +25,12 @@ pub async fn hn() -> Response {
 
 pub async fn home(State(state): State<Arc<AppState>>, session: Session) -> Response {
     let snippets = state.snippets.latest().await;
+    let is_authenticated = AppState::is_authenticated(session.clone()).await;
     if !snippets.is_err() {
         let view_snippets = snippets
             .unwrap()
             .into_iter()
-            .map(ViewTemplate::from)
+            .map(|snippet| ViewTemplate::convert_to_view(snippet, is_authenticated))
             .collect::<Vec<ViewTemplate>>();
         let flash_present: Option<String> = session.remove("flash").await.unwrap();
         let mut f = "".to_string();
@@ -38,7 +39,6 @@ pub async fn home(State(state): State<Arc<AppState>>, session: Session) -> Respo
                 f = flash;
             }
         }
-        let is_authenticated = AppState::is_authenticated(session).await;
         let home_template = HomeTemplate {
             view_snippets,
             flash: f,
@@ -58,6 +58,7 @@ pub async fn snippet_view(
     State(state): State<Arc<AppState>>,
 ) -> Response {
     let result = state.snippets.get(&snippet_id).await;
+    let is_authenticated = AppState::is_authenticated(session.clone()).await;
     if !result.is_err() {
         let snippet = result.unwrap();
         let mut template = ViewTemplate::new(
@@ -66,6 +67,7 @@ pub async fn snippet_view(
             snippet.content,
             snippet.created,
             snippet.expires,
+            is_authenticated,
         );
 
         let flash_present: Option<String> = session.remove("flash").await.unwrap();
@@ -85,14 +87,16 @@ pub async fn snippet_view(
     }
 }
 
-pub async fn snippet_create() -> Response {
+pub async fn snippet_create(session: Session) -> Response {
     // Redirect the user to the relevant page for the snippet.
+    // function call for checking authentication may not be required on some paths
+    let is_authenticated = AppState::is_authenticated(session.clone()).await;
     let create = CreateTemplate {
         user_errors: HashMap::new(),
         title: "".to_string(),
         content: "".to_string(),
         expires: 365,
-        is_authenticated: true,
+        is_authenticated,
     };
     let template_render_result = create.render();
     AppState::render(template_render_result)

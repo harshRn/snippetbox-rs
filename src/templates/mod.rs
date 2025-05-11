@@ -34,18 +34,6 @@ pub struct ViewTemplate {
     pub is_authenticated: bool,
 }
 
-impl From<Snippet> for ViewTemplate {
-    fn from(value: Snippet) -> Self {
-        ViewTemplate::new(
-            value.title.clone(),
-            value.id,
-            value.content.clone(),
-            value.created,
-            value.expires,
-        )
-    }
-}
-
 impl ViewTemplate {
     pub fn new(
         title: String,
@@ -53,6 +41,7 @@ impl ViewTemplate {
         content: String,
         created: DateTime<Utc>,
         expires: DateTime<Utc>,
+        is_authenticated: bool,
     ) -> Self {
         Self {
             title,
@@ -61,11 +50,22 @@ impl ViewTemplate {
             created,
             expires,
             flash: "".to_string(),
-            is_authenticated: false,
+            is_authenticated,
         }
     }
 
     pub fn set_flash(&mut self, flash: String) {
         self.flash = flash;
+    }
+
+    pub fn convert_to_view(value: Snippet, is_authenticated: bool) -> Self {
+        ViewTemplate::new(
+            value.title.clone(),
+            value.id,
+            value.content.clone(),
+            value.created,
+            value.expires,
+            is_authenticated,
+        )
     }
 }
