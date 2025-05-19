@@ -23,6 +23,12 @@ struct UserRecord {
     hashed_password: Vec<u8>,
 }
 
+#[derive(sqlx::FromRow, Debug)]
+struct Exists {
+    flag: i32,
+}
+
+#[derive(Clone)]
 pub struct UserModel {
     pool: Pool<MySql>,
 }
@@ -112,6 +118,20 @@ impl UserModel {
     }
 
     pub async fn exists(&self, id: i32) -> Result<bool, sqlx::Error> {
-        Ok(false)
+        let query = "SELECT EXISTS(SELECT true FROM users WHERE id = ?) as flag";
+        let query_res = sqlx::query_as::<_, Exists>(query)
+            .bind(id)
+            .fetch_one(&self.pool)
+            .await;
+        match query_res {
+            Ok(res) => {
+                if res.flag == 1 {
+                    Ok(true)
+                } else {
+                    Ok(false)
+                }
+            }
+            Err(e) => Err(e),
+        }
     }
 }

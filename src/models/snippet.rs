@@ -12,6 +12,7 @@ pub struct Snippet {
     pub expires: DateTime<Utc>,
 }
 
+#[derive(Clone)]
 pub struct SnippetModel {
     pool: Pool<MySql>,
 }

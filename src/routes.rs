@@ -1,11 +1,12 @@
 use crate::handlers::{
     hn, user_login, user_login_post, user_logout_post, user_signup, user_signup_post,
 };
-use crate::middleware::{common_headers, request_ip, require_auth};
+use crate::middleware::{authenticate, common_headers, request_ip, require_auth};
 use crate::{
     AppState,
     handlers::{home, snippet_create, snippet_create_post, snippet_view},
 };
+use axum::middleware::from_fn;
 use axum::{
     Router,
     extract::MatchedPath,
@@ -56,6 +57,10 @@ impl AppRouter {
             .route("/user/login", get(user_login))
             .route("/user/login", post(user_login_post))
             .nest_service("/static", ServeDir::new("static"))
+            .layer(axum::middleware::from_fn_with_state(
+                shared_state.clone(),
+                authenticate,
+            )) // since this uses session it needs to be work after the session layer
             .layer(session_layer)
             .layer(axum::middleware::from_fn(common_headers))
             .layer(CatchPanicLayer::new())

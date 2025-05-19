@@ -10,6 +10,7 @@ mod routes;
 mod utils;
 
 use askama::Error;
+use axum::Extension;
 use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Response};
 use axum_server::{Handle, tls_rustls::RustlsConfig};
@@ -20,7 +21,6 @@ use routes::AppRouter;
 use sqlx::mysql::{MySqlConnectOptions, MySqlPool};
 use sqlx::{ConnectOptions, MySql, Pool};
 use tokio::{signal, task::AbortHandle, time::sleep};
-use tower_sessions::Session;
 use tower_sessions::session_store::ExpiredDeletion;
 use tower_sessions_sqlx_store::MySqlStore;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -39,9 +39,15 @@ struct Ports {
     https: u16,
 }
 
+#[derive(Clone)]
 struct AppState {
     snippets: models::snippet::SnippetModel,
     users: models::users::UserModel,
+}
+
+#[derive(Clone)]
+struct Authenticated {
+    val: bool,
 }
 
 impl AppState {
@@ -72,15 +78,21 @@ impl AppState {
         }
     }
 
-    pub async fn is_authenticated(session: Session) -> bool {
-        let auth_res: Result<Option<i32>, tower_sessions::session::Error> =
-            session.get("authenticatedUserID").await;
-        if let Ok(id_opt) = auth_res {
-            if let Some(_) = id_opt {
-                return true;
-            }
-        }
-        false
+    // pub async fn is_authenticated(session: Session) -> Option<i32> {
+    //     let auth_res: Result<Option<i32>, tower_sessions::session::Error> =
+    //         session.get("authenticatedUserID").await;
+    //     if let Ok(id_opt) = auth_res {
+    //         if let Some(id) = id_opt {
+    //             return Some(id);
+    //         }
+    //     }
+    //     None
+    // }
+
+    pub async fn is_authenticated(ext_state: Extension<Authenticated>) -> bool {
+        let auth = ext_state.val;
+        println!("auth is {auth}");
+        if auth { true } else { false }
     }
 }
 

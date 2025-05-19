@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    AppState,
+    AppState, Authenticated,
     templates::{HomeTemplate, ViewTemplate},
     utils::{
         form_validation::{CreateTemplate, SnippetData},
@@ -12,6 +12,7 @@ use crate::{
 
 use askama::Template;
 use axum::{
+    Extension,
     extract::{Path, State},
     http::{HeaderMap, StatusCode, header},
     response::{IntoResponse, Redirect, Response},
@@ -23,9 +24,13 @@ pub async fn hn() -> Response {
     (StatusCode::OK, "hello").into_response()
 }
 
-pub async fn home(State(state): State<Arc<AppState>>, session: Session) -> Response {
+pub async fn home(
+    State(state): State<Arc<AppState>>,
+    ext_state: Extension<Authenticated>,
+    session: Session,
+) -> Response {
     let snippets = state.snippets.latest().await;
-    let is_authenticated = AppState::is_authenticated(session.clone()).await;
+    let is_authenticated = AppState::is_authenticated(ext_state).await;
     if !snippets.is_err() {
         let view_snippets = snippets
             .unwrap()
@@ -42,7 +47,7 @@ pub async fn home(State(state): State<Arc<AppState>>, session: Session) -> Respo
         let home_template = HomeTemplate {
             view_snippets,
             flash: f,
-            is_authenticated,
+            is_authenticated: is_authenticated,
         };
         let template_render_result = home_template.render();
         AppState::render(template_render_result)
@@ -56,9 +61,10 @@ pub async fn snippet_view(
     session: Session,
     Path(snippet_id): Path<u32>,
     State(state): State<Arc<AppState>>,
+    ext_state: Extension<Authenticated>,
 ) -> Response {
     let result = state.snippets.get(&snippet_id).await;
-    let is_authenticated = AppState::is_authenticated(session.clone()).await;
+    let is_authenticated = AppState::is_authenticated(ext_state).await;
     if !result.is_err() {
         let snippet = result.unwrap();
         let mut template = ViewTemplate::new(
@@ -87,16 +93,16 @@ pub async fn snippet_view(
     }
 }
 
-pub async fn snippet_create(session: Session) -> Response {
+pub async fn snippet_create(ext_state: Extension<Authenticated>) -> Response {
     // Redirect the user to the relevant page for the snippet.
     // function call for checking authentication may not be required on some paths
-    let is_authenticated = AppState::is_authenticated(session.clone()).await;
+    let is_authenticated = AppState::is_authenticated(ext_state).await;
     let create = CreateTemplate {
         user_errors: HashMap::new(),
         title: "".to_string(),
         content: "".to_string(),
         expires: 365,
-        is_authenticated,
+        is_authenticated: is_authenticated,
     };
     let template_render_result = create.render();
     AppState::render(template_render_result)
